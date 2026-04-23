@@ -272,3 +272,9 @@
                 msg.lang = 'zh-TW';
                 msg.onstart = () => holoImages.forEach(i => i.classList.add('is-talking'));
                 msg.onend = () => holoImages.forEach(i => i.classList.remove('is-talking'));
+window.speechSynthesis.speak(msg);
+            }
+        }
+    </script>
+</body>
+</html>
