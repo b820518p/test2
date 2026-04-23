@@ -1,353 +1,279 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+/* ================= 0. 手機連線設定 ================= */
+<link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 核心互動介面</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AI 全息艙 - 雷射掃描升級版</title>
     <style>
-        :root {
-            --primary-bg: #0d1117;
-            --panel-bg: rgba(22, 27, 34, 0.85);
-            --text-color: #c9d1d9;
-            --accent-color: #58a6ff;
+        /* ================= 1. 基礎防跑版設定 ================= */
+        html, body {
+            background-color: #000000 !important; color: #ffffff;
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            position: fixed; top: 0; left: 0; bottom: 0; right: 0;
+            overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            font-family: sans-serif; touch-action: none;
         }
 
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--primary-bg);
-            color: var(--text-color);
-            font-family: sans-serif;
-            overflow: hidden; /* 防止手機滾動 */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        #subtitle {
+            position: absolute; top: max(30px, env(safe-area-inset-top)); 
+            left: 0; width: 100%; font-size: 18px; text-align: center; z-index: 5;
+            text-shadow: 0px 0px 10px #00d2ff; padding: 0 20px; box-sizing: border-box;
+            transition: 0.3s;
         }
 
-        /* --- 設定面板 (可隱藏) --- */
-        #settings-panel {
-            position: absolute;
-            top: 10px;
-            width: 90%;
-            background: var(--panel-bg);
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 15px;
-            box-sizing: border-box;
-            z-index: 100;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(5px);
-        }
-        #settings-panel.hidden {
-            transform: translateY(-150%);
-            opacity: 0;
-            pointer-events: none;
-        }
-        .input-group { margin-bottom: 10px; }
-        .input-group input {
-            width: 100%; padding: 8px; box-sizing: border-box;
-            border-radius: 6px; border: 1px solid #30363d; background: #010409; color: white;
-        }
-        .btn-row { display: flex; gap: 10px; }
-        button {
-            flex: 1; padding: 10px; border: none; border-radius: 6px;
-            background: var(--accent-color); color: #000; font-weight: bold; cursor: pointer;
-        }
+        /* ================= 2. 投影陣列與動畫 ================= */
+        #hologram-container { position: relative; width: 320px; height: 320px; transform-style: preserve-3d; }
         
-        /* 呼叫設定的懸浮按鈕 */
-        #toggle-settings-btn {
-            position: absolute; top: 15px; right: 15px;
-            background: transparent; border: 1px solid var(--accent-color);
-            color: var(--accent-color); padding: 5px 10px; border-radius: 6px;
-            z-index: 99; cursor: pointer;
+        /* 外層：負責梯形切割，適應金字塔反射 */
+        .holo-wrapper {
+            position: absolute; width: 150px; height: 150px;
+            top: 50%; left: 50%; margin-top: -75px; margin-left: -75px;
+            clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
         }
 
-        /* --- 視覺顯示區 --- */
-        #display-area {
-            flex: 1;
-            width: 100%;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        /* 內層：圖片本體 */
+        .holo-image {
+            width: 100%; height: 100%;
+            background-size: contain; background-repeat: no-repeat; background-position: center bottom;
+            background-image: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+            opacity: 1; 
         }
 
-        /* 粒子特效 Canvas */
-        #particle-canvas {
-            position: absolute;
-            z-index: 10;
+        /* 💡 全新：由下往上的雷射掃描組裝動畫 */
+        .assemble-anim {
+            /* 2.5秒的組裝過程 */
+            animation: bottomToTopReveal 2.5s forwards ease-in-out;
         }
 
-        /* 動畫人物容器 (粒子動畫結束後顯示) */
-        #character-container {
-            position: absolute;
-            opacity: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            transition: opacity 0.5s ease;
-            z-index: 20;
-            /* 身體呼吸浮動特效 */
-            animation: float 4s ease-in-out infinite; 
+        @keyframes bottomToTopReveal {
+            0% { 
+                /* 一開始只留底部 0% 的高度 (完全看不見) */
+                clip-path: polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%);
+                filter: brightness(4) drop-shadow(0px -15px 10px #00d2ff);
+            }
+            80% { 
+                filter: brightness(2) drop-shadow(0px -5px 5px #00d2ff);
+            }
+            100% { 
+                /* 掃描到頂部 100% 的高度 (完全顯現) */
+                clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+                filter: brightness(1) drop-shadow(0px 0px 0px transparent);
+            }
         }
 
-        /* 這裡用 CSS 簡單畫出臉部與眼睛作為示範，你之後可替換成你的圖片 */
-        .character-body {
-            width: 120px; height: 120px;
-            background: #238636; border-radius: 30px;
-            display: flex; justify-content: space-around; align-items: center; padding: 0 20px;
-            position: relative;
-        }
-        
-        .eye {
-            width: 25px; height: 40px;
-            background: #fff; border-radius: 50%;
-            /* 眼睛眨動特效 */
-            animation: blink 3s infinite;
-        }
-
-        .hand {
-            width: 30px; height: 30px; background: #2ea043; border-radius: 50%;
-            position: absolute; bottom: -15px;
-            /* 手部輕微晃動 */
-            animation: wave 2s ease-in-out infinite alternate;
-        }
-        .hand.left { left: -10px; transform-origin: top right; }
-        .hand.right { right: -10px; transform-origin: top left; }
-
-        /* 動態 Keyframes */
-        @keyframes float {
+        /* 平時呼吸動畫 */
+        .idle-breathe { animation: float3D 4s infinite ease-in-out; }
+        @keyframes float3D {
             0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-        @keyframes blink {
-            0%, 90%, 100% { transform: scaleY(1); }
-            95% { transform: scaleY(0.1); }
-        }
-        @keyframes wave {
-            0% { transform: rotate(-10deg); }
-            100% { transform: rotate(10deg); }
+            50% { transform: translateY(-8px); }
         }
 
-        /* --- 互動對話區 --- */
-        #chat-area {
-            width: 100%; height: 250px; background: #010409;
-            border-top: 1px solid #30363d; display: flex; flex-direction: column;
+        /* 說話時的微幅動態 (如果你傳靜態圖，這會讓它有生命力) */
+        .is-talking { animation: talkingAnim 0.15s infinite !important; }
+        @keyframes talkingAnim {
+            0%, 100% { transform: scaleY(1) scaleX(1); }
+            50% { transform: scaleY(1.03) scaleX(0.98); }
         }
-        #output-log {
-            flex: 1; padding: 15px; overflow-y: auto; font-size: 14px; line-height: 1.5;
+
+        #front-wrapper { transform: translateY(130px); }
+        #back-wrapper { transform: translateY(-130px) rotate(180deg); }
+        #left-wrapper { transform: translateX(-130px) rotate(90deg); }
+        #right-wrapper { transform: translateX(130px) rotate(-90deg); }
+
+        /* ================= 3. UI 佈局 ================= */
+        #interaction-bar {
+            position: absolute; bottom: max(15px, env(safe-area-inset-bottom));
+            width: 100%; display: flex; justify-content: center; align-items: center; z-index: 100;
         }
-        #input-area {
-            display: flex; padding: 10px; border-top: 1px solid #30363d;
+
+        .mic-btn {
+            background-color: rgba(0, 210, 255, 0.2); color: #00d2ff; border: 1px solid #00d2ff;
+            padding: 12px 30px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer;
+            backdrop-filter: blur(5px); transition: 0.3s; box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
         }
-        #input-area input {
-            flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #30363d;
-            background: var(--primary-bg); color: white; margin-right: 10px;
+        .mic-btn.listening {
+            background-color: rgba(255, 0, 0, 0.3); border-color: #ff4d4d; color: #ff4d4d;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5); animation: pulse 1.5s infinite;
         }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+        #gear-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #333; font-size: 20px; cursor: pointer; z-index: 110; }
+
+        #settings-panel {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 200; display: none; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .settings-content { width: 85%; max-width: 350px; background: #111; padding: 20px; border-radius: 15px; border: 1px solid #333; }
+        .api-group { display: flex; gap: 8px; margin-bottom: 20px; }
+        .api-group input { flex: 1; background: #000; border: 1px solid #444; color: #0f0; padding: 8px; border-radius: 5px; }
+        .api-group button { background: #00d2ff; color: #000; border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; }
+        .upload-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
+        .upload-btn { background: #333; color: #fff; padding: 6px 12px; border-radius: 5px; cursor: pointer; }
+        input[type="file"] { display: none; }
+        .close-settings { width: 100%; margin-top: 20px; padding: 10px; background: #444; color: #fff; border: none; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-    <button id="toggle-settings-btn">⚙️ 設定</button>
+    <div id="subtitle">系統待命中心</div>
+    <button id="gear-btn" onclick="toggleSettings(true)">⚙️</button>
+
+    <div id="hologram-container">
+        <div id="back-wrapper" class="holo-wrapper"><div id="back-img" class="holo-image"></div></div>
+        <div id="left-wrapper" class="holo-wrapper"><div id="left-img" class="holo-image"></div></div>
+        <div id="right-wrapper" class="holo-wrapper"><div id="right-img" class="holo-image"></div></div>
+        <div id="front-wrapper" class="holo-wrapper"><div id="front-img" class="holo-image"></div></div>
+    </div>
+
+    <div id="interaction-bar">
+        <button id="mic-btn" class="mic-btn" onclick="toggleListening()">🎤 啟動語音指令</button>
+    </div>
 
     <div id="settings-panel">
-        <h3 style="margin-top:0;">核心設定</h3>
-        <div class="input-group">
-            <input type="password" id="api-key-input" placeholder="填入 Gemini API Key">
-        </div>
-        <div class="btn-row">
-            <button onclick="saveSettings()">儲存並隱藏</button>
-            <button onclick="triggerAssembleEffect()" style="background:#238636; color:white;">重新載入核心</button>
-        </div>
-    </div>
-
-    <div id="display-area">
-        <canvas id="particle-canvas" width="300" height="300"></canvas>
-        
-        <div id="character-container">
-            <div class="character-body">
-                <div class="eye"></div>
-                <div class="eye"></div>
-                <div class="hand left"></div>
-                <div class="hand right"></div>
+        <div class="settings-content">
+            <h3 style="text-align:center; margin-top:0;">核心參數設定</h3>
+            <div class="api-group">
+                <input type="password" id="api-input" placeholder="Gemini API Key">
+                <button onclick="saveApiKey()">儲存</button>
             </div>
-            </div>
-    </div>
+            <div id="api-status" style="font-size:12px; text-align:center; color:#888; margin-bottom:15px;">API 尚未就緒</div>
 
-    <div id="chat-area">
-        <div id="output-log">系統初始化完成，等待指令...</div>
-        <div id="input-area">
-            <input type="text" id="prompt-input" placeholder="輸入訊息...">
-            <button onclick="sendToGemini()">發送</button>
+            <div style="font-size:12px; color:#aaa; margin-bottom:10px; text-align:center;">提示：上傳去背的 GIF 可讓人物手眼動起來</div>
+
+            <div class="upload-row"><span>前視</span><label for="up-front" class="upload-btn">上傳</label><input type="file" id="up-front" accept="image/*"></div>
+            <div class="upload-row"><span>後視</span><label for="up-back" class="upload-btn">上傳</label><input type="file" id="up-back" accept="image/*"></div>
+            <div class="upload-row"><span>左視</span><label for="up-left" class="upload-btn">上傳</label><input type="file" id="up-left" accept="image/*"></div>
+            <div class="upload-row"><span>右視</span><label for="up-right" class="upload-btn">上傳</label><input type="file" id="up-right" accept="image/*"></div>
+            
+            <button class="close-settings" onclick="toggleSettings(false)">完成並關閉</button>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // 1. UI 與設定邏輯
-        // ==========================================
-        const settingsPanel = document.getElementById('settings-panel');
-        const apiKeyInput = document.getElementById('api-key-input');
-        const outputLog = document.getElementById('output-log');
+        const subtitle = document.getElementById('subtitle');
+        const apiStatus = document.getElementById('api-status');
+        const apiInput = document.getElementById('api-input');
+        const micBtn = document.getElementById('mic-btn');
+        const holoImages = document.querySelectorAll('.holo-image');
 
-        // 載入儲存的 API Key
-        window.onload = () => {
-            const savedKey = localStorage.getItem('gemini_api_key');
-            if (savedKey) {
-                apiKeyInput.value = savedKey;
-                settingsPanel.classList.add('hidden'); // 有金鑰就預設隱藏
-                triggerAssembleEffect(); // 觸發組裝動畫
-            }
-        };
+        let API_KEY = localStorage.getItem('gemini_hologram_key') || '';
+        if (API_KEY) { apiInput.value = API_KEY; apiStatus.innerText = "✅ 核心 API 已就緒"; }
 
-        document.getElementById('toggle-settings-btn').addEventListener('click', () => {
-            settingsPanel.classList.toggle('hidden');
-        });
-
-        function saveSettings() {
-            localStorage.setItem('gemini_api_key', apiKeyInput.value);
-            settingsPanel.classList.add('hidden');
-            logMessage("系統提示：API 設定已儲存。");
+        function saveApiKey() { 
+            const key = apiInput.value.trim();
+            if (key) { API_KEY = key; localStorage.setItem('gemini_hologram_key', key); apiStatus.innerText = "✅ 儲存成功"; } 
         }
 
-        function logMessage(msg) {
-            outputLog.innerHTML += `<div>${msg}</div>`;
-            outputLog.scrollTop = outputLog.scrollHeight;
-        }
+        function toggleSettings(show) { document.getElementById('settings-panel').style.display = show ? 'flex' : 'none'; }
 
-        // ==========================================
-        // 2. 科技粒子由下往上組裝特效 (Canvas)
-        // ==========================================
-        const canvas = document.getElementById('particle-canvas');
-        const ctx = canvas.getContext('2d');
-        const charContainer = document.getElementById('character-container');
-        let particles = [];
-        let animationFrameId;
-
-        function triggerAssembleEffect() {
-            // 重置狀態
-            cancelAnimationFrame(animationFrameId);
-            charContainer.style.opacity = 0;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles = [];
-
-            // 為了示範，我們先在隱藏的 canvas 上畫一個圖形當作「像素來源」
-            // 實戰中你可以用 ctx.drawImage(img, 0, 0) 畫上你的 PNG 圖片
-            ctx.fillStyle = '#238636';
-            ctx.beginPath();
-            ctx.roundRect(90, 90, 120, 120, 30);
-            ctx.fill();
-            
-            // 獲取像素資料
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // 清空準備畫粒子
-
-            // 抽樣像素轉換為粒子 (每 4px 抽樣一次以提升效能)
-            for (let y = 0; y < canvas.height; y += 4) {
-                for (let x = 0; x < canvas.width; x += 4) {
-                    const alpha = data[(y * canvas.width + x) * 4 + 3];
-                    if (alpha > 128) {
-                        particles.push({
-                            x: x,
-                            y: canvas.height + Math.random() * 200, // 從底部以外的地方開始
-                            targetX: x,
-                            targetY: y,
-                            speed: 0.03 + Math.random() * 0.04, // 亂數速度造成科幻感
-                            color: `rgba(88, 166, 255, ${Math.random() * 0.8 + 0.2})` // 科技藍
-                        });
+        // ================= 圖片上傳與動畫控制 =================
+        function setupUpload(inputId, imgId) {
+            document.getElementById(inputId).addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) { 
+                        const img = document.getElementById(imgId);
+                        img.style.backgroundImage = `url('${e.target.result}')`;
+                        
+                        img.classList.remove('idle-breathe', 'assemble-anim');
+                        void img.offsetWidth; // 觸發重繪
+                        
+                        img.classList.add('assemble-anim'); // 執行由下往上掃描動畫
+                        
+                        setTimeout(() => { 
+                            img.classList.remove('assemble-anim');
+                            img.classList.add('idle-breathe'); // 動畫結束後開始呼吸
+                        }, 2500);
+                        
+                        document.querySelector(`label[for="${inputId}"]`).innerText = "OK";
                     }
+                    reader.readAsDataURL(file);
                 }
+            });
+        }
+        setupUpload('up-front', 'front-img'); setupUpload('up-back', 'back-img'); setupUpload('up-left', 'left-img'); setupUpload('up-right', 'right-img');
+
+        // ================= 語音辨識 =================
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'zh-TW';
+            recognition.onstart = () => { isListening = true; micBtn.classList.add('listening'); micBtn.innerText = "🛑 系統聆聽中..."; };
+            recognition.onresult = (e) => { const text = e.results[0][0].transcript; subtitle.innerText = `我: ${text}`; sendToGemini(text); };
+            recognition.onerror = (e) => { subtitle.innerText = `麥克風錯誤: ${e.error}`; stopListening(); };
+            recognition.onend = () => { stopListening(); };
+        } else {
+            micBtn.innerText = "❌ 瀏覽器不支援語音辨識";
+            micBtn.disabled = true;
+        }
+
+        function stopListening() {
+            isListening = false;
+            micBtn.classList.remove('listening');
+            micBtn.innerText = "🎤 啟動語音指令";
+        }
+
+        function toggleListening() {
+            if (!API_KEY) { subtitle.innerText = "⚠️ 請先點右上角齒輪輸入 API Key"; return; }
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); // 奪取音訊權限
             }
+            if (isListening) recognition.stop(); else recognition.start();
+        }
 
-            // 動畫迴圈 (約 1~3 秒完成)
-            let isAssembling = true;
-            function animateParticles() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                let allReached = true;
-
-                particles.forEach(p => {
-                    // 緩動演算法：位置 = 位置 + (目標 - 位置) * 速度
-                    p.y += (p.targetY - p.y) * p.speed;
-                    p.x += (p.targetX - p.x) * p.speed;
-
-                    // 畫出粒子
-                    ctx.fillStyle = p.color;
-                    ctx.fillRect(p.x, p.y, 2, 2);
-
-                    // 判斷是否抵達目標 (誤差小於 1px)
-                    if (Math.abs(p.targetY - p.y) > 1) {
-                        allReached = false;
-                    }
+        // ================= 精準除錯版 API 呼叫 =================
+        async function sendToGemini(userText) {
+            subtitle.innerText = "正在分析指令...";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: userText }] }],
+                        systemInstruction: { parts: [{ text: "你是一個科幻的全息 AI 助理。講話簡短、專業且有禮。字數控制在 30 字內。" }] }
+                    })
                 });
+                
+                const data = await response.json();
 
-                if (!allReached) {
-                    animationFrameId = requestAnimationFrame(animateParticles);
-                } else if (isAssembling) {
-                    // 組裝完成，隱藏 Canvas，顯示 CSS 動畫人物
-                    isAssembling = false;
-                    setTimeout(() => {
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        charContainer.style.opacity = 1;
-                        logMessage("系統提示：核心載入完成。");
-                    }, 300);
+                // 💡 精準報錯機制：如果不是 200 OK，把真正的錯誤訊息印出來
+                if (!response.ok) {
+                    if (response.status === 400) subtitle.innerText = `API 錯誤: 金鑰可能無效 (400)`;
+                    else if (response.status === 403) subtitle.innerText = `API 錯誤: 權限不足 (403)`;
+                    else if (response.status === 404) subtitle.innerText = `API 錯誤: 模型找不到 (404)`;
+                    else if (response.status === 503) subtitle.innerText = `API 錯誤: 伺服器忙碌中 (503)`;
+                    else subtitle.innerText = `連線異常: ${data.error ? data.error.message : response.status}`;
+                    return;
                 }
+
+                const replyText = data.candidates[0].content.parts[0].text;
+                subtitle.innerText = replyText;
+                speak(replyText);
+                
+            } catch (error) {
+                // 抓取完全斷網或其他無法預期的錯誤
+                console.error(error);
+                subtitle.innerText = `網路錯誤：無法連上伺服器`;
             }
-            animateParticles();
         }
 
-        // ==========================================
-        // 3. Gemini API 核心連線異常與重試機制
-        // ==========================================
-        async function sendToGemini() {
-            const inputField = document.getElementById('prompt-input');
-            const prompt = inputField.value.trim();
-            const apiKey = localStorage.getItem('gemini_api_key');
-
-            if (!apiKey) {
-                logMessage("<span style='color:red'>錯誤：請先開啟設定填寫 API Key。</span>");
-                settingsPanel.classList.remove('hidden');
-                return;
-            }
-            if (!prompt) return;
-
-            logMessage(`<b>使用者：</b> ${prompt}`);
-            inputField.value = '';
-            
-            let attempts = 0;
-            const maxRetries = 2; // 連線異常時最多重試 2 次
-
-            while (attempts <= maxRetries) {
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }]
-                        })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP Error: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    const aiResponse = data.candidates[0].content.parts[0].text;
-                    logMessage(`<span style='color:var(--accent-color)'><b>AI：</b> ${aiResponse}</span>`);
-                    return; // 成功則跳出迴圈
-
-                } catch (error) {
-                    attempts++;
-                    console.error("連線錯誤", error);
-                    if (attempts > maxRetries) {
-                        logMessage(`<span style='color:red'>系統錯誤：連線異常 (${error.message})。請檢查網路或 API Key 額度。</span>`);
-                    } else {
-                        logMessage(`<span style='color:orange'>連線異常，正在嘗試重新連線 (第 ${attempts} 次)...</span>`);
-                        await new Promise(resolve => setTimeout(resolve, 1500)); // 暫停 1.5 秒再重試
-                    }
-                }
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.lang = 'zh-TW';
+                msg.rate = 1.1;
+                msg.onstart = () => holoImages.forEach(i => i.classList.add('is-talking'));
+                msg.onend = () => holoImages.forEach(i => i.classList.remove('is-talking'));
+                window.speechSynthesis.speak(msg);
             }
         }
     </script>
