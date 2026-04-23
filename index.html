@@ -1,84 +1,92 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI 全息艙 - 物理坐標掃描版</title>
+    <title>AI 全息艙 - 3秒科技組裝版</title>
     <style>
-        /* ================= 1. 基礎設定 ================= */
-        :root { --p: 0; } /* 全局組裝百分比變數 */
+        :root { --p: 0; } /* 0 到 100 的掃描進度 */
 
         html, body {
             background-color: #000000 !important; color: #ffffff;
             margin: 0; padding: 0; width: 100vw; height: 100vh;
             position: fixed; top: 0; left: 0; bottom: 0; right: 0;
             overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center;
-            font-family: sans-serif; touch-action: none;
+            font-family: 'Courier New', monospace; touch-action: none;
         }
 
         #subtitle {
             position: absolute; top: max(30px, env(safe-area-inset-top)); 
-            left: 0; width: 100%; font-size: 16px; text-align: center; z-index: 5;
-            color: #00d2ff; text-shadow: 0px 0px 8px rgba(0,210,255,0.8);
-            padding: 0 20px; box-sizing: border-box;
+            width: 100%; text-align: center; z-index: 10;
+            color: #00d2ff; font-size: 16px; font-weight: bold;
+            text-shadow: 0 0 8px rgba(0,210,255,0.8); padding: 0 20px; box-sizing: border-box;
         }
 
-        /* ================= 2. 投影核心 (解決方向問題) ================= */
+        /* 全息投影容器 */
         #hologram-container { position: relative; width: 340px; height: 340px; transform-style: preserve-3d; }
         
         .holo-wrapper {
             position: absolute; width: 150px; height: 150px;
             top: 50%; left: 50%; margin-top: -75px; margin-left: -75px;
-            /* 外部梯形裁切 */
+            /* 外部梯形裁切，適應金字塔反射 */
             clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
         }
 
+        /* 圖片本體 */
         .holo-image {
             width: 100%; height: 100%;
             background-size: contain; background-repeat: no-repeat; background-position: center bottom;
             background-image: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
             position: relative;
-            /* 💡 核心修正：使用 inset 裁切，由下往上揭露 (從 100% 變為 0%) */
+            /* 💡 物理性裁切：由下往上揭露 */
             clip-path: inset(calc(100% - (var(--p) * 1%)) 0 0 0);
-            transition: none; /* 由 JS 控製進度 */
+            filter: brightness(1.1);
         }
 
-        /* 💡 掃描雷射線：相對於圖片自身定位 */
+        /* 💡 藍光科技掃描線 (粒子邊緣) */
         .holo-image::after {
             content: "";
             position: absolute;
-            left: 0; width: 100%; height: 3px;
-            background: #00d2ff;
-            box-shadow: 0 0 15px #00d2ff, 0 0 5px #fff;
-            /* 讓雷射線精準跟著裁切邊界移動 */
+            left: -10%; width: 120%; height: 3px;
+            background: linear-gradient(90deg, transparent, #00d2ff, #fff, #00d2ff, transparent);
+            box-shadow: 0 0 20px #00d2ff, 0 0 5px #fff;
+            /* 讓藍光鎖死在裁切邊緣 */
             top: calc(100% - (var(--p) * 1%));
-            opacity: 1;
             display: none; /* 預設隱藏 */
+            z-index: 2;
         }
 
         .scanning .holo-image::after { display: block; }
+        /* 出現時的閃爍粒子感 */
+        .scanning .holo-image { animation: tech-flicker 0.2s infinite; }
 
-        /* 動畫狀態 */
+        @keyframes tech-flicker {
+            0% { opacity: 0.8; filter: brightness(2); }
+            50% { opacity: 1; filter: brightness(1.2); }
+            100% { opacity: 0.9; filter: brightness(1.8); }
+        }
+
+        /* 平時呼吸 */
         .idle-breathe { animation: float3D 4s infinite ease-in-out; }
         @keyframes float3D {
             0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-6px); }
         }
 
-        .is-talking { animation: talking 0.15s infinite !important; }
-        @keyframes talking {
-            0%, 100% { transform: scaleY(1); }
-            50% { transform: scaleY(1.03) brightness(1.2); }
+        /* 講話動態 */
+        .is-talking { animation: speak-vibe 0.12s infinite; }
+        @keyframes speak-vibe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03) brightness(1.3); }
         }
 
-        /* 方向旋轉 */
-        #front-wrapper { transform: translateY(135px); }
-        #back-wrapper { transform: translateY(-135px) rotate(180deg); }
-        #left-wrapper { transform: translateX(-135px) rotate(90deg); }
-        #right-wrapper { transform: translateX(135px) rotate(-90deg); }
+        /* 四面旋轉定位 */
+        #front { transform: translateY(135px); }
+        #back { transform: translateY(-135px) rotate(180deg); }
+        #left { transform: translateX(-135px) rotate(90deg); }
+        #right { transform: translateX(135px) rotate(-90deg); }
 
-        /* ================= 3. UI 介面 ================= */
+        /* ================= UI 介面 ================= */
         #interaction-bar {
             position: absolute; bottom: max(25px, env(safe-area-inset-bottom));
             width: 100%; display: flex; justify-content: center; z-index: 100;
@@ -86,24 +94,24 @@
 
         .mic-btn {
             background-color: rgba(0, 210, 255, 0.1); color: #00d2ff; border: 1px solid #00d2ff;
-            padding: 12px 35px; border-radius: 50px; font-size: 16px; font-weight: bold;
-            backdrop-filter: blur(10px); transition: 0.3s;
+            padding: 12px 35px; border-radius: 50px; font-size: 15px; font-weight: bold;
+            backdrop-filter: blur(10px); box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
         }
         .mic-btn.listening { background-color: rgba(255, 0, 0, 0.2); border-color: #ff4d4d; color: #ff4d4d; }
 
-        #gear-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #444; font-size: 24px; z-index: 110; }
+        #gear-btn { position: absolute; top: 15px; right: 15px; color: #444; background: none; border: none; font-size: 24px; z-index: 110; }
 
         #settings-panel {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 200; display: none; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.96); z-index: 200; display: none; flex-direction: column; justify-content: center; align-items: center;
         }
-        .settings-content { width: 85%; max-width: 350px; background: #111; padding: 25px; border-radius: 20px; border: 1px solid #333; }
+        .settings-content { width: 85%; max-width: 360px; background: #111; padding: 25px; border-radius: 20px; border: 1px solid #333; }
         .api-group { display: flex; gap: 8px; margin-bottom: 20px; }
-        .api-group input { flex: 1; background: #000; border: 1px solid #444; color: #0f0; padding: 10px; border-radius: 8px; font-size: 14px; }
+        .api-group input { flex: 1; background: #000; border: 1px solid #333; color: #0f0; padding: 10px; border-radius: 8px; }
         .api-group button { background: #00d2ff; color: #000; border: none; padding: 10px; border-radius: 8px; font-weight: bold; }
         
-        .upload-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; }
-        .upload-btn { background: #333; color: #fff; padding: 8px 15px; border-radius: 8px; cursor: pointer; }
+        .upload-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .upload-btn { background: #222; color: #fff; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 13px; }
         input[type="file"] { display: none; }
         .close-settings { width: 100%; margin-top: 20px; padding: 12px; background: #00d2ff; color: #000; border: none; border-radius: 8px; font-weight: bold; }
 
@@ -115,31 +123,31 @@
     <button id="gear-btn" onclick="toggleSettings(true)">⚙️</button>
 
     <div id="hologram-container">
-        <div id="back-wrapper" class="holo-wrapper"><div id="back-img" class="holo-image"></div></div>
-        <div id="left-wrapper" class="holo-wrapper"><div id="left-img" class="holo-image"></div></div>
-        <div id="right-wrapper" class="holo-wrapper"><div id="right-img" class="holo-image"></div></div>
-        <div id="front-wrapper" class="holo-wrapper"><div id="front-img" class="holo-image"></div></div>
+        <div id="back" class="holo-wrapper"><div id="back-img" class="holo-image"></div></div>
+        <div id="left" class="holo-wrapper"><div id="left-img" class="holo-image"></div></div>
+        <div id="right" class="holo-wrapper"><div id="right-img" class="holo-image"></div></div>
+        <div id="front" class="holo-wrapper"><div id="front-img" class="holo-image"></div></div>
     </div>
 
     <div id="interaction-bar">
-        <button id="mic-btn" class="mic-btn" onclick="toggleListening()">🎤 START VOICE COMMAND</button>
+        <button id="mic-btn" class="mic-btn" onclick="toggleListening()">🎤 INITIATE VOICE COMMAND</button>
     </div>
 
     <div id="settings-panel">
         <div class="settings-content">
-            <h3 style="text-align:center; margin-top:0; color:#00d2ff;">AI CORE SETTINGS</h3>
+            <h3 style="text-align:center; margin-top:0; color:#00d2ff;">CORE CONFIG</h3>
             <div class="api-group">
-                <input type="password" id="api-input" placeholder="Paste Gemini API Key">
+                <input type="password" id="api-input" placeholder="Gemini API Key">
                 <button onclick="saveApiKey()">SAVE</button>
             </div>
-            <div id="api-status" style="font-size:12px; text-align:center; color:#888; margin-bottom:15px;">WAITING FOR KEY...</div>
+            <div id="api-status" style="font-size:12px; text-align:center; color:#555; margin-bottom:15px;">WAITING FOR KEY...</div>
 
             <div class="upload-row"><span>FRONT</span><label for="up-front" class="upload-btn">UPLOAD</label><input type="file" id="up-front" accept="image/*"></div>
             <div class="upload-row"><span>BACK</span><label for="up-back" class="upload-btn">UPLOAD</label><input type="file" id="up-back" accept="image/*"></div>
             <div class="upload-row"><span>LEFT</span><label for="up-left" class="upload-btn">UPLOAD</label><input type="file" id="up-left" accept="image/*"></div>
             <div class="upload-row"><span>RIGHT</span><label for="up-right" class="upload-btn">UPLOAD</label><input type="file" id="up-right" accept="image/*"></div>
             
-            <button class="close-settings" onclick="toggleSettings(false)">DEPLOY SYSTEM</button>
+            <button class="close-settings" onclick="toggleSettings(false)">DEPlOY SYSTEM</button>
         </div>
     </div>
 
@@ -161,22 +169,29 @@
 
         function toggleSettings(show) { document.getElementById('settings-panel').style.display = show ? 'flex' : 'none'; }
 
-        // ================= 1. 核心掃描動畫 (由下往上) =================
+        // ================= 1. 核心掃描動畫：精確 3 秒組裝 =================
         function triggerScan() {
             container.classList.add('scanning');
-            let progress = 0;
             holoImages.forEach(img => img.classList.remove('idle-breathe'));
             
-            const scanInterval = setInterval(() => {
-                progress += 2; // 速度控制：2.5秒左右完成
-                document.documentElement.style.setProperty('--p', progress);
-                
-                if (progress >= 100) {
-                    clearInterval(scanInterval);
+            let startTime = null;
+            const duration = 3000; // 💡 設定為 3000 毫秒 (3秒)
+
+            function animate(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const elapsed = timestamp - startTime;
+                const progress = Math.min(elapsed / duration, 1); // 0 到 1
+
+                document.documentElement.style.setProperty('--p', (progress * 100));
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
                     container.classList.remove('scanning');
                     holoImages.forEach(img => img.classList.add('idle-breathe'));
                 }
-            }, 50); // 每50毫秒更新一次
+            }
+            requestAnimationFrame(animate);
         }
 
         function setupUpload(inputId, imgId) {
@@ -186,8 +201,8 @@
                     const reader = new FileReader();
                     reader.onload = function(e) { 
                         document.getElementById(imgId).style.backgroundImage = `url('${e.target.result}')`; 
-                        document.querySelector(`label[for="${inputId}"]`).innerText = "OK";
-                        triggerScan(); // 每次上傳完成觸發掃描
+                        triggerScan(); // 每次上傳觸發掃描
+                        document.querySelector(`label[for="${inputId}"]`).innerText = "READY";
                     }
                     reader.readAsDataURL(file);
                 }
@@ -195,7 +210,7 @@
         }
         setupUpload('up-front', 'front-img'); setupUpload('up-back', 'back-img'); setupUpload('up-left', 'left-img'); setupUpload('up-right', 'right-img');
 
-        // ================= 2. 語音辨識與強制解鎖音訊 =================
+        // ================= 2. 語音辨識與音訊解鎖 =================
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition = null;
         let isListening = false;
@@ -203,22 +218,22 @@
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
             recognition.lang = 'zh-TW';
-            recognition.onstart = () => { isListening = true; micBtn.classList.add('listening'); micBtn.innerText = "🛑 LISTENING..."; };
+            recognition.onstart = () => { isListening = true; micBtn.classList.add('listening'); micBtn.innerText = "🛑 SYSTEM LISTENING..."; };
             recognition.onresult = (e) => { const text = e.results[0][0].transcript; subtitle.innerText = `You: ${text}`; sendToGemini(text); };
-            recognition.onend = () => { isListening = false; micBtn.classList.remove('listening'); micBtn.innerText = "🎤 START VOICE COMMAND"; };
+            recognition.onend = () => { isListening = false; micBtn.classList.remove('listening'); micBtn.innerText = "🎤 INITIATE VOICE COMMAND"; };
         }
 
         function toggleListening() {
             if ('speechSynthesis' in window) {
-                const unlock = new SpeechSynthesisUtterance('');
-                window.speechSynthesis.speak(unlock);
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); // 強制解鎖音訊權限
             }
             if (isListening) recognition.stop(); else recognition.start();
         }
 
-        // ================= 3. Gemini API (加強除錯) =================
+        // ================= 3. Gemini API (連線診斷版) =================
         async function sendToGemini(userText) {
-            if (!API_KEY) { subtitle.innerText = "ERROR: NO API KEY"; return; }
+            if (!API_KEY) { subtitle.innerText = "ERROR: API KEY MISSING"; return; }
             subtitle.innerText = "THINKING...";
             
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
@@ -229,15 +244,15 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: userText }] }],
-                        systemInstruction: { parts: [{ text: "你是一個科幻的全息 AI 助理。講話簡短、專業。不超過 25 字。" }] }
+                        systemInstruction: { parts: [{ text: "你是一個科幻的全息 AI 助理。講話極度簡短、專業。每次回覆不得超過 20 字。" }] }
                     })
                 });
                 
                 const data = await response.json();
 
                 if (!response.ok) {
-                    // 💡 這裡會顯示具體的 Google 報錯訊息
-                    subtitle.innerText = `API ERROR: ${data.error ? data.error.message : response.status}`;
+                    // 💡 直接顯示具體原因代碼
+                    subtitle.innerText = `SYS_ERR: ${response.status} ${data.error ? data.error.message.substring(0, 20) : ''}`;
                     return;
                 }
 
@@ -246,7 +261,7 @@
                 speak(replyText);
                 
             } catch (error) {
-                subtitle.innerText = "CONNECTION FAILED: CHECK NETWORK";
+                subtitle.innerText = "CONNECTION_FAIL: TIMEOUT";
             }
         }
 
@@ -257,9 +272,3 @@
                 msg.lang = 'zh-TW';
                 msg.onstart = () => holoImages.forEach(i => i.classList.add('is-talking'));
                 msg.onend = () => holoImages.forEach(i => i.classList.remove('is-talking'));
-                window.speechSynthesis.speak(msg);
-            }
-        }
-    </script>
-</body>
-</html>
