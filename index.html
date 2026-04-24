@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI 全息艙 - 雙向通訊科幻版</title>
+    <title>AI 全息艙 - 終極電影級版</title>
     <style>
+        /* 預設組裝進度為 0 (完全隱藏) */
         :root { --p: 0; }
 
         html, body {
@@ -18,33 +19,65 @@
         /* 全息投影容器 */
         #hologram-container { position: relative; width: 340px; height: 340px; transform-style: preserve-3d; margin-bottom: 80px; }
         
-        .holo-wrapper {
+        /* 💡 結構分離：將旋轉定位交給最外層的 face-container */
+        .face-container {
             position: absolute; width: 150px; height: 150px;
             top: 50%; left: 50%; margin-top: -75px; margin-left: -75px;
-            clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
         }
 
-        /* 圖片本體 */
+        /* 梯形裁切層 (避免把字幕裁掉) */
+        .holo-wrapper {
+            width: 100%; height: 100%;
+            clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
+            position: relative;
+        }
+
+        /* 圖片本體：改用 CSS 變數載入背景，方便做碎片化特效 */
         .holo-image {
             width: 100%; height: 100%;
+            background-image: var(--bg-img);
             background-size: contain; background-repeat: no-repeat; background-position: center bottom;
-            background-image: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
             position: relative;
             clip-path: inset(calc(100% - (var(--p) * 1%)) 0 0 0);
             filter: brightness(1.2);
-            /* 預設影像渲染方式 */
-            image-rendering: auto;
         }
 
-        /* 💡 科幻四面字幕：掛載在每個面的下方 */
+        /* 💡 終極科幻：碎片化 (Glitch) 特效的切片層 */
+        .holo-image::before, .holo-image::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: var(--bg-img);
+            background-size: contain; background-repeat: no-repeat; background-position: center bottom;
+            opacity: 0; z-index: -1;
+        }
+
+        /* 說話時啟動碎片干擾 */
+        .is-talking { image-rendering: pixelated; animation: base-glitch 0.2s infinite; }
+        .is-talking::before { opacity: 0.8; animation: glitch-slice-1 0.15s infinite linear alternate-reverse; }
+        .is-talking::after { opacity: 0.8; animation: glitch-slice-2 0.25s infinite linear alternate-reverse; }
+
+        @keyframes base-glitch {
+            0%, 100% { transform: scale(1); filter: brightness(1.2); }
+            50% { transform: scale(1.02); filter: brightness(1.5); }
+        }
+        @keyframes glitch-slice-1 {
+            0% { clip-path: inset(10% 0 70% 0); transform: translateX(-4px); filter: hue-rotate(90deg) contrast(150%); }
+            50% { clip-path: inset(40% 0 40% 0); transform: translateX(4px); filter: hue-rotate(-90deg) contrast(150%); }
+            100% { clip-path: inset(70% 0 10% 0); transform: translateX(-2px); filter: hue-rotate(180deg) contrast(150%); }
+        }
+        @keyframes glitch-slice-2 {
+            0% { clip-path: inset(25% 0 55% 0); transform: translateX(3px); filter: invert(0.3) saturate(200%); }
+            50% { clip-path: inset(55% 0 25% 0); transform: translateX(-3px); filter: sepia(1) saturate(200%); }
+            100% { clip-path: inset(35% 0 45% 0); transform: translateX(5px); filter: invert(0) saturate(200%); }
+        }
+
+        /* 💡 成功修復：立體字幕 (放在 face-container 底部) */
         .holo-sub {
-            position: absolute; bottom: -20px; left: -50%; width: 200%;
-            text-align: center; color: #00d2ff; font-size: 12px; font-weight: bold;
+            position: absolute; bottom: -25px; left: -50%; width: 200%;
+            text-align: center; color: #00d2ff; font-size: 13px; font-weight: bold;
             text-shadow: 0 0 5px #00d2ff, 0 0 10px #000; pointer-events: none;
-            word-wrap: break-word; z-index: 10;
         }
 
-        /* 科技掃描線 */
+        /* 科技藍色掃描線 */
         .scan-line {
             position: absolute; left: -10%; width: 120%; height: 2px;
             background: linear-gradient(90deg, transparent, #00d2ff, #fff, #00d2ff, transparent);
@@ -54,11 +87,10 @@
         }
 
         .scanning .scan-line { display: block; }
-        .scanning .holo-image { animation: tech-flicker 0.1s infinite; }
-
+        .scanning .holo-image { animation: tech-flicker 0.15s infinite; }
         @keyframes tech-flicker {
             0%, 100% { opacity: 1; filter: brightness(1.2); }
-            50% { opacity: 0.8; filter: brightness(2); }
+            50% { opacity: 0.7; filter: brightness(2); }
         }
 
         /* 平時呼吸 */
@@ -68,30 +100,18 @@
             50% { transform: translateY(-6px); }
         }
 
-        /* 💡 核心優化：科幻碎片化/像素化講話特效 (RGB 色偏 + 抖動 + 像素化) */
-        .is-talking {
-            animation: sci-fi-glitch 0.2s infinite alternate;
-            image-rendering: pixelated; /* 強制像素化 */
-        }
-        @keyframes sci-fi-glitch {
-            0% { transform: scale(1) skewX(0deg); filter: drop-shadow(3px 0 0 rgba(0,255,255,0.7)) drop-shadow(-3px 0 0 rgba(255,0,255,0.7)); }
-            33% { transform: scale(1.02) skewX(1deg); filter: brightness(1.3); }
-            66% { transform: scale(0.98) skewX(-1deg); filter: drop-shadow(-2px 2px 0 cyan); }
-            100% { transform: scale(1.01) skewX(0deg); filter: drop-shadow(2px -2px 0 magenta); }
-        }
-
+        /* 四面定位 */
         #front { transform: translateY(135px); }
         #back { transform: translateY(-135px) rotate(180deg); }
         #left { transform: translateX(-135px) rotate(90deg); }
         #right { transform: translateX(135px) rotate(-90deg); }
 
-        /* ================= 整合互動區 (底部) ================= */
+        /* ================= 整合互動區 ================= */
         #interaction-area {
             position: absolute; bottom: max(25px, env(safe-area-inset-bottom));
             width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 100;
         }
 
-        /* 移到底部的中央主字幕 */
         #main-subtitle {
             color: #00d2ff; font-size: 15px; font-weight: bold; margin-bottom: 12px;
             text-shadow: 0 0 8px rgba(0,210,255,0.8); text-align: center; padding: 0 20px;
@@ -104,14 +124,13 @@
             transition: 0.3s;
         }
         
-        /* 雙向通訊狀態樣式 */
         .mic-btn.active-loop { 
             background-color: rgba(255, 50, 50, 0.2); border-color: #ff4d4d; color: #ff4d4d; 
             box-shadow: 0 0 20px rgba(255, 50, 50, 0.4); animation: pulse 1.5s infinite;
         }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
-        #gear-btn { position: absolute; top: 15px; right: 15px; color: #444; background: none; border: none; font-size: 24px; z-index: 110; }
+        #gear-btn { position: absolute; top: 15px; right: 15px; color: #555; background: none; border: none; font-size: 24px; z-index: 110; cursor: pointer; }
 
         /* 設定面板 */
         #settings-panel {
@@ -125,7 +144,7 @@
         .upload-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .upload-btn { background: #222; color: #fff; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 13px; }
         input[type="file"] { display: none; }
-        .close-settings { width: 100%; margin-top: 20px; padding: 12px; background: #00d2ff; color: #000; border: none; border-radius: 8px; font-weight: bold; }
+        .close-settings { width: 100%; margin-top: 20px; padding: 12px; background: #00d2ff; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;}
     </style>
 </head>
 <body>
@@ -133,10 +152,22 @@
     <button id="gear-btn" onclick="toggleSettings(true)">⚙️</button>
 
     <div id="hologram-container">
-        <div id="back" class="holo-wrapper"><div id="back-img" class="holo-image"></div><div class="scan-line"></div><div class="holo-sub"></div></div>
-        <div id="left" class="holo-wrapper"><div id="left-img" class="holo-image"></div><div class="scan-line"></div><div class="holo-sub"></div></div>
-        <div id="right" class="holo-wrapper"><div id="right-img" class="holo-image"></div><div class="scan-line"></div><div class="holo-sub"></div></div>
-        <div id="front" class="holo-wrapper"><div id="front-img" class="holo-image"></div><div class="scan-line"></div><div class="holo-sub"></div></div>
+        <div id="back" class="face-container">
+            <div class="holo-wrapper"><div id="back-img" class="holo-image" style="--bg-img: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')"></div><div class="scan-line"></div></div>
+            <div class="holo-sub"></div>
+        </div>
+        <div id="left" class="face-container">
+            <div class="holo-wrapper"><div id="left-img" class="holo-image" style="--bg-img: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')"></div><div class="scan-line"></div></div>
+            <div class="holo-sub"></div>
+        </div>
+        <div id="right" class="face-container">
+            <div class="holo-wrapper"><div id="right-img" class="holo-image" style="--bg-img: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')"></div><div class="scan-line"></div></div>
+            <div class="holo-sub"></div>
+        </div>
+        <div id="front" class="face-container">
+            <div class="holo-wrapper"><div id="front-img" class="holo-image" style="--bg-img: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')"></div><div class="scan-line"></div></div>
+            <div class="holo-sub"></div>
+        </div>
     </div>
 
     <div id="interaction-area">
@@ -181,68 +212,86 @@
 
         function toggleSettings(show) { document.getElementById('settings-panel').style.display = show ? 'flex' : 'none'; }
 
-        // ================= 更新所有字幕的函數 =================
+        // ================= 更新所有立體字幕 =================
         function updateSubtitles(text) {
             mainSubtitle.innerText = text;
             sideSubtitles.forEach(sub => sub.innerText = text);
         }
 
-        // ================= 音效合成器 =================
-        // 1. 上傳單張圖片時的掃描音效
-        function playScanSound() {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(100, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 3);
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 3);
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.start(); osc.stop(ctx.currentTime + 3);
-        }
-
-        // 2. 💡 點擊 Deploy System 時的「全息系統上線」科幻和弦音效
-        function playDeploySound() {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const gain = ctx.createGain();
-            gain.gain.setValueAtTime(0.15, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
-            gain.connect(ctx.destination);
-
-            // 合成科幻和弦
-            [300, 450, 600].forEach(freq => {
+        // ================= 💡 科技音效模組 =================
+        // 單獨上傳的短滴聲
+        function playBeep() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = ctx.createOscillator();
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(freq, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(freq * 2, ctx.currentTime + 1.5);
-                osc.connect(gain);
-                osc.start(); osc.stop(ctx.currentTime + 1.5);
-            });
-            updateSubtitles("HOLOGRAM SYSTEM ONLINE");
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1000, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + 0.2);
+            } catch(e) {}
         }
 
+        // 4.5秒藍色雷射掃描聲 + 上線和弦
+        function playDeployScanSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                // 掃描音上升
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(50, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 4.5); 
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 4.5);
+                
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + 4.5);
+
+                // 4.5秒後響起科幻和弦代表完成
+                setTimeout(() => {
+                    [300, 450, 600].forEach(freq => {
+                        const o = ctx.createOscillator();
+                        const g = ctx.createGain();
+                        o.type = 'square';
+                        o.frequency.setValueAtTime(freq, ctx.currentTime);
+                        g.gain.setValueAtTime(0.1, ctx.currentTime);
+                        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+                        o.connect(g); g.connect(ctx.destination);
+                        o.start(); o.stop(ctx.currentTime + 1.5);
+                    });
+                }, 4500);
+            } catch(e) {}
+        }
+
+        // ================= 💡 掃描與上傳邏輯 =================
         function deploySystem() {
             toggleSettings(false);
-            playDeploySound();
-        }
-
-        // ================= 掃描動畫 =================
-        function triggerScan() {
+            updateSubtitles("INITIALIZING...");
+            
             container.classList.add('scanning');
-            playScanSound(); 
+            playDeployScanSound(); // 觸發 4.5s 音效
             holoImages.forEach(img => img.classList.remove('idle-breathe'));
             
             let startTime = null;
+            const duration = 4500; // 💡 精確設定生成時間：4.5秒 (4500ms)
+
             function animate(timestamp) {
                 if (!startTime) startTime = timestamp;
-                const progress = Math.min((timestamp - startTime) / 3000, 1);
+                const elapsed = timestamp - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
                 document.documentElement.style.setProperty('--p', (progress * 100));
 
-                if (progress < 1) requestAnimationFrame(animate);
-                else {
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
                     container.classList.remove('scanning');
                     holoImages.forEach(img => img.classList.add('idle-breathe'));
+                    updateSubtitles("HOLOGRAM SYSTEM ONLINE");
                 }
             }
             requestAnimationFrame(animate);
@@ -254,9 +303,10 @@
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = function(e) { 
-                        document.getElementById(imgId).style.backgroundImage = `url('${e.target.result}')`; 
-                        triggerScan();
-                        document.querySelector(`label[for="${inputId}"]`).innerText = "READY";
+                        // 改為修改 CSS 變數，配合碎片化特效
+                        document.getElementById(imgId).style.setProperty('--bg-img', `url('${e.target.result}')`); 
+                        playBeep(); // 每次上傳觸發短促滴聲
+                        document.querySelector(`label[for="${inputId}"]`).innerText = "SET";
                     }
                     reader.readAsDataURL(file);
                 }
@@ -267,16 +317,14 @@
         // ================= 💡 雙向通訊監聽系統 =================
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition = null;
-        let isSystemActive = false; // 控制雙向迴圈的開關
+        let isSystemActive = false; 
         let isWaitingForGemini = false;
 
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
             recognition.lang = 'zh-TW';
             
-            recognition.onstart = () => { 
-                updateSubtitles("LISTENING..."); 
-            };
+            recognition.onstart = () => { updateSubtitles("LISTENING..."); };
             
             recognition.onresult = (e) => { 
                 const text = e.results[0][0].transcript; 
@@ -292,25 +340,22 @@
             };
 
             recognition.onend = () => { 
-                // 如果系統處於啟動狀態，且不是在等 Gemini 回答，就重新開啟麥克風 (達到無限監聽)
+                // 若仍在啟動狀態且非等待回答中，自動重啟麥克風無限監聽
                 if (isSystemActive && !isWaitingForGemini) {
                     setTimeout(() => { try { recognition.start(); } catch(e){} }, 300);
                 }
             };
         }
 
-        // 開關雙向通訊
         function toggleSystemLoop() {
             if (!API_KEY) { updateSubtitles("ERROR: API KEY MISSING"); return; }
             
-            isSystemActive = !isSystemActive; // 切換狀態
+            isSystemActive = !isSystemActive; 
 
             if (isSystemActive) {
-                // 啟動
                 micBtn.classList.add('active-loop');
                 micBtn.innerText = "🛑 通訊連線中 (點擊關閉)";
                 
-                // 強制解鎖音訊
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
                     window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); 
@@ -319,7 +364,6 @@
                 try { recognition.start(); } catch(e){}
 
             } else {
-                // 關閉
                 stopSystemLoop();
             }
         }
@@ -335,7 +379,7 @@
 
         // ================= Gemini API =================
         async function sendToGemini(userText) {
-            isWaitingForGemini = true; // 鎖定麥克風，等待回答
+            isWaitingForGemini = true; 
             updateSubtitles("PROCESSING...");
             
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
@@ -374,13 +418,14 @@
                 const msg = new SpeechSynthesisUtterance(text);
                 msg.lang = 'zh-TW';
                 
+                // 語音開始：加上科幻碎片干擾效果
                 msg.onstart = () => holoImages.forEach(i => i.classList.add('is-talking'));
                 
+                // 語音結束：移除特效，並判斷是否繼續監聽
                 msg.onend = () => {
                     holoImages.forEach(i => i.classList.remove('is-talking'));
                     isWaitingForGemini = false;
                     
-                    // 💡 語音播放結束後，如果通訊仍在開啟狀態，自動重啟麥克風聆聽下一句
                     if (isSystemActive) {
                         setTimeout(() => { try { recognition.start(); } catch(e){} }, 500);
                     }
