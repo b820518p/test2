@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI 全息艙 - 科幻方塊電影版</title>
+    <title>AI 全息艙 - 電影級華麗版</title>
     <style>
         :root { --p: 0; }
 
@@ -23,7 +23,7 @@
             top: 50%; left: 50%; margin-top: -75px; margin-left: -75px;
         }
 
-        /* 梯形裁切層 */
+        /* 梯形裁切層 (限制投影比例) */
         .holo-wrapper {
             width: 100%; height: 100%;
             clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
@@ -41,15 +41,16 @@
             z-index: 1;
         }
 
-        /* 💡 終極修復：全息立體字幕 (放在 holo-wrapper 內部底部，保證絕對顯示) */
+        /* 💡 終極修復：字幕移出 holo-wrapper，放在 face-container 底部，不再被切斷！ */
         .holo-sub {
-            position: absolute; bottom: 5px; left: 0; width: 100%;
+            position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+            width: 200%; /* 放寬寬度，允許文字超出圖片範圍 */
             text-align: center; color: #00d2ff; font-size: 13px; font-weight: bold;
             text-shadow: 0 0 4px #00d2ff, 0 0 8px #000; z-index: 20;
             pointer-events: none; word-wrap: break-word;
         }
 
-        /* 科技藍色掃描線 */
+        /* 生成時的科技藍色掃描線 */
         .scan-line {
             position: absolute; left: -10%; width: 120%; height: 2px;
             background: linear-gradient(90deg, transparent, #00d2ff, #fff, #00d2ff, transparent);
@@ -59,43 +60,41 @@
         }
 
         .scanning .scan-line { display: block; }
-        .scanning .holo-image { animation: tech-flicker 0.15s infinite; }
+        .scanning .holo-image { animation: tech-flicker 0.2s infinite; }
         @keyframes tech-flicker {
             0%, 100% { opacity: 1; filter: brightness(1.2); }
-            50% { opacity: 0.7; filter: brightness(2); }
+            50% { opacity: 0.8; filter: brightness(1.8); }
         }
 
         /* 平時呼吸 */
         .idle-breathe { animation: float3D 4s infinite ease-in-out; }
         @keyframes float3D {
             0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-6px); }
+            50% { transform: translateY(-5px); }
         }
 
-        /* 💡 電影級科技像素方塊化特效 (移除紅藍，改為純淨青光與數位方塊錯位) */
+        /* 💡 電影級華麗特效：緩慢呼吸光暈 + 垂直全息掃描層 */
         .is-talking {
-            image-rendering: pixelated; /* 強制影像產生顆粒科技感 */
-            animation: sci-fi-talk 0.15s infinite steps(2);
+            animation: cinematic-pulse 2s infinite alternate ease-in-out;
         }
         .is-talking::after {
             content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: var(--bg-img);
-            background-size: contain; background-repeat: no-repeat; background-position: center bottom;
-            filter: brightness(1.6) drop-shadow(0 0 8px #00d2ff); /* 純淨科技青藍光 */
-            opacity: 0.8; z-index: 2;
-            animation: block-glitch 0.2s infinite steps(3);
+            background-image: var(--bg-img); background-size: contain; background-repeat: no-repeat; background-position: center bottom;
+            filter: brightness(1.8) contrast(1.2) drop-shadow(0 0 5px #00d2ff);
+            opacity: 0.5; z-index: 2; mix-blend-mode: screen;
+            /* 緩慢而優雅的掃描線 */
+            animation: cinematic-scan 2.5s infinite linear;
         }
 
-        @keyframes sci-fi-talk {
-            0% { transform: scale(1); filter: brightness(1.2); }
-            50% { transform: scale(1.02); filter: brightness(1.4); }
+        @keyframes cinematic-pulse {
+            0% { filter: brightness(1.1) drop-shadow(0 0 2px rgba(0, 210, 255, 0.3)); }
+            100% { filter: brightness(1.3) drop-shadow(0 0 12px rgba(0, 210, 255, 0.8)); }
         }
-        @keyframes block-glitch {
-            /* 利用水平 inset 裁切出方塊，製造數位資料讀取時的水平錯位感 */
-            0% { clip-path: inset(10% 0 70% 0); transform: translateX(3px); }
-            33% { clip-path: inset(60% 0 20% 0); transform: translateX(-3px); }
-            66% { clip-path: inset(30% 0 50% 0); transform: translateX(2px); }
-            100% { clip-path: inset(80% 0 5% 0); transform: translateX(-2px); }
+        @keyframes cinematic-scan {
+            /* 讓全息干擾層由上往下緩緩掃過 */
+            0% { clip-path: inset(0% 0 95% 0); transform: translateY(-1px); }
+            50% { clip-path: inset(48% 0 48% 0); transform: translateY(0px); }
+            100% { clip-path: inset(95% 0 0% 0); transform: translateY(1px); }
         }
 
         /* 四面定位 */
@@ -154,29 +153,29 @@
             <div class="holo-wrapper">
                 <div id="back-img" class="holo-image" style="--bg-img: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')"></div>
                 <div class="scan-line"></div>
-                <div class="holo-sub"></div>
             </div>
+            <div class="holo-sub"></div>
         </div>
         <div id="left" class="face-container">
             <div class="holo-wrapper">
                 <div id="left-img" class="holo-image" style="--bg-img: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')"></div>
                 <div class="scan-line"></div>
-                <div class="holo-sub"></div>
             </div>
+            <div class="holo-sub"></div>
         </div>
         <div id="right" class="face-container">
             <div class="holo-wrapper">
                 <div id="right-img" class="holo-image" style="--bg-img: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')"></div>
                 <div class="scan-line"></div>
-                <div class="holo-sub"></div>
             </div>
+            <div class="holo-sub"></div>
         </div>
         <div id="front" class="face-container">
             <div class="holo-wrapper">
                 <div id="front-img" class="holo-image" style="--bg-img: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')"></div>
                 <div class="scan-line"></div>
-                <div class="holo-sub"></div>
             </div>
+            <div class="holo-sub"></div>
         </div>
     </div>
 
@@ -220,7 +219,21 @@
             if (key) { API_KEY = key; localStorage.setItem('gemini_hologram_key', key); apiStatus.innerText = "✅ SAVED"; } 
         }
 
-        function toggleSettings(show) { document.getElementById('settings-panel').style.display = show ? 'flex' : 'none'; }
+        // ================= 全局音效解鎖器 =================
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleSettings(show) { 
+            if (show) initAudio(); // 💡 點擊齒輪時強制解鎖音效權限
+            document.getElementById('settings-panel').style.display = show ? 'flex' : 'none'; 
+        }
 
         // ================= 更新字幕 =================
         function updateSubtitles(text) {
@@ -231,44 +244,43 @@
         // ================= 音效模組 =================
         function playBeep() {
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(1200, ctx.currentTime);
-                // 💡 增大單點確認音效：Gain 從 0.1 調高到 0.8
-                gain.gain.setValueAtTime(0.8, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-                osc.connect(gain); gain.connect(ctx.destination);
-                osc.start(); osc.stop(ctx.currentTime + 0.2);
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.8, audioCtx.currentTime); // 大音量
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
             } catch(e) {}
         }
 
         function playDeployScanSound() {
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
                 
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(50, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 4.5); 
-                gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 4.5);
+                osc.frequency.setValueAtTime(50, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 4.5); 
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 4.5);
                 
-                osc.connect(gain); gain.connect(ctx.destination);
-                osc.start(); osc.stop(ctx.currentTime + 4.5);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 4.5);
 
                 setTimeout(() => {
                     [300, 450, 600].forEach(freq => {
-                        const o = ctx.createOscillator();
-                        const g = ctx.createGain();
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
                         o.type = 'square';
-                        o.frequency.setValueAtTime(freq, ctx.currentTime);
-                        g.gain.setValueAtTime(0.15, ctx.currentTime);
-                        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
-                        o.connect(g); g.connect(ctx.destination);
-                        o.start(); o.stop(ctx.currentTime + 1.5);
+                        o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                        g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                        g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5);
+                        o.connect(g); g.connect(audioCtx.destination);
+                        o.start(); o.stop(audioCtx.currentTime + 1.5);
                     });
                 }, 4500);
             } catch(e) {}
@@ -402,7 +414,14 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    updateSubtitles(response.status === 503 ? "大腦忙碌中 (503)" : `SYS_ERR: ${response.status}`);
+                    // 💡 針對 429 和 503 錯誤加入溫柔提示
+                    if (response.status === 429) {
+                        updateSubtitles("⚠️ 請求頻繁，請等待 1 分鐘");
+                    } else if (response.status === 503) {
+                        updateSubtitles("⚠️ 系統忙碌中 (503)，請重試");
+                    } else {
+                        updateSubtitles(`SYS_ERR: ${response.status}`);
+                    }
                     isWaitingForGemini = false;
                     return;
                 }
@@ -423,10 +442,10 @@
                 const msg = new SpeechSynthesisUtterance(text);
                 msg.lang = 'zh-TW';
                 
-                // 語音開始：啟動純淨方塊像素特效
+                // 語音開始：啟動純淨科技光暈
                 msg.onstart = () => holoImages.forEach(i => i.classList.add('is-talking'));
                 
-                // 語音結束：停止特效，循環聆聽
+                // 語音結束：停止特效
                 msg.onend = () => {
                     holoImages.forEach(i => i.classList.remove('is-talking'));
                     isWaitingForGemini = false;
